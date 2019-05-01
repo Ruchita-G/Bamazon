@@ -3,12 +3,10 @@ var inquirer = require("inquirer");
 var Table = require('cli-table');
 
 var connection = mysql.createConnection({
+
   host: "localhost",
-
   port: 3306,
-
   user: "root",
-
   password: "root",
   database: "bamazon_db"
 });
@@ -20,29 +18,32 @@ connection.connect(function (err, ) {
 });
 
 function startOptions() {
+  console.log("-------------------------------------------------------------------");
+
   inquirer.prompt([
     {
       "name": "options",
-      "message": "\nWelcome to Bamazon! \nPlease select an option!",
+      "message": "\nWelcome to Bamazon!\n \nPlease select an option!",
       "type": "list",
       "choices": ["Checkout Bamazon", "Quit Bamazon"]
     }
   ]).then(function (answer) {
     switch (answer.options) {
       case "Checkout Bamazon":
+        productTable();
         console.log("\nBrowse our Product product!\n")
-        productChoices();
-        productproduct();
         break;
       case "Quit Bamazon":
         console.log("\nVisit us again later!\n")
-        connection.end()
+        connection.end();
         break;
     }
   })
 }
 
-function productChoices() {
+function productTable() {
+  console.log("-------------------------------------------------------------------");
+
   connection.query("SELECT * FROM products", function (err, res) {
     if (err) throw err;
     table = new Table({
@@ -54,15 +55,17 @@ function productChoices() {
 
     })
     console.log("\n" + table.toString())
+    console.log(" ");
+    productSelection();
   })
 }
 
-function productproduct() {
+function productSelection() {
 
   inquirer.prompt(
     {
       "name": "id",
-      "message": "Please enter a Product ID to make a purchase!",
+      "message": "Please enter a Product ID to make a purchase: ",
       "type": "input",
       "validate": function (input) {
 
@@ -81,10 +84,11 @@ function productproduct() {
         if (err) throw err;
         if (res.length === 0) {
 
-          console.log("Please enter a valid Product Id from the table");
-          productChoices();
+          console.log("Please enter a valid Product Id from the table: ");
+          productTable();
 
         } else {
+          console.log(" ");
 
           inquirer.prompt(
             {
@@ -106,23 +110,34 @@ function productproduct() {
               if (quantity > res[0].stockQuantity) {
 
                 console.log("\nApologies!! Cannot complete order due to Insufficient Stock!")
-                productChoices();
+                productTable();
 
               } else {
 
-                console.log("\nOrder Complete for " + res[0].productName + " " + quantity + " qty @ $" + res[0].price);
-
-                var newQuantity = res[0].stockQuantity - quantity;
-                connection.query("UPDATE products SET stockQuantity = " + newQuantity + "WHERE itemId = " + res[0].itemId, function (err, res) {
-
-                  console.log("\nThank you for chosing Bamazon!")
-
-                  startOptions();
-                }
-                )
+                buyProduct(res, quantity);
               }
             })
         }
       })
     })
+}
+
+function buyProduct(res, quantity) {
+
+  console.log("-------------------------------------------------------------------");
+  console.log("-------------------------------------------------------------------");
+
+  console.log("Order Complete\n" + "\n" + res[0].productName + " " + quantity + " qty @ $" + res[0].price);
+
+  var newQuantity = res[0].stockQuantity - quantity;
+  var totalCost = (res[0].price * quantity)
+
+  connection.query("UPDATE products SET stockQuantity = " + newQuantity + " WHERE itemId = " + res[0].itemId, function (err, res) {
+    console.log(newQuantity);
+    console.log("\nTotal sales cost " + totalCost);
+    console.log("\nThank you for chosing Bamazon!")
+    console.log("-------------------------------------------------------------------");
+
+    productTable();
+  })
 }
